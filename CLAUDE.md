@@ -392,9 +392,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 - [ ] Активировать Schedule Trigger на Reconcile v2
 - [ ] Разобраться со статусом WB Sales workflow `Us0qkxTcAJAYTeJ9` (деактивирован 20.04)
 
-### Веб-интерфейс синхронизации (продумано 21.04, не начато)
+### Веб-интерфейс синхронизации (в разработке)
 
-Next.js на Vercel + Supabase RPC + Realtime. Три кнопки: «Остатки / Цены / Всё», прогресс шагов в реальном времени, история прогонов. Claude выпадает из цепочки запуска — остаётся только для разработки и отладки. Подробности — в обсуждении от 21.04 и в архитектурной дискуссии.
+Next.js на Vercel + Supabase RPC + Realtime. Три карточки: «Остатки / Цены / Всё целиком». Запуск плейбука целиком ИЛИ по шагам (чекбокс «По шагам» + стрелка раскрытия). Блокировка по матрице конфликтов: `sync_all` конфликтует со всем, `sync_stocks` + `sync_prices` совместимы параллельно. Claude выпадает из цепочки запуска.
+
+Подробности в `sync_ui_plan.md`. Backend готов:
+- Миграции: `sync_ui_rpc_functions`, `sync_ui_single_step_rpc`, `sync_ui_conflict_based_blocking`
+- RPC в `public`: `trigger_playbook`, `trigger_single_step`, `cancel_run`, `get_active_runs`, `get_recent_runs`, `get_run_status`, `get_playbook_steps`, `is_playbook_available`
+- Realtime включён для `claude_meta.job_queue` и `claude_meta.playbook_run`
 
 ### Архитектурная дискуссия (отложено)
 
