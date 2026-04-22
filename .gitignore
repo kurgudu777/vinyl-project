@@ -27,6 +27,7 @@ lerna-debug.log*
 .nuxt/
 .turbo/
 .vite/
+.vercel/
 dist/
 build/
 out/
