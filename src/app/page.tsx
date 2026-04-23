@@ -205,17 +205,20 @@ function StepList({ name }: { name: PlaybookName }) {
   return (
     <ol className="flex flex-col divide-y divide-neutral-700 pl-1">
       {steps.map((s: PlaybookStep) => (
-        <li
-          key={s.step_order}
-          className="flex items-baseline gap-2 py-1.5 text-xs text-neutral-300"
-        >
-          <span className="w-5 shrink-0 font-mono tabular-nums text-neutral-500">
-            {s.step_order}.
-          </span>
-          <span className="flex-1">{s.label}</span>
-          {!s.required && (
-            <span className="font-mono text-[10px] text-neutral-600">опц</span>
-          )}
+        <li key={s.step_order}>
+          <button
+            type="button"
+            onClick={() => console.log('step click', name, s.step_order, s.label)}
+            className="flex w-full items-baseline gap-2 py-1.5 text-left text-xs text-neutral-300 transition hover:text-white hover:bg-neutral-800/50 -mx-1 px-1 rounded"
+          >
+            <span className="w-5 shrink-0 font-mono tabular-nums text-neutral-500">
+              {s.step_order}.
+            </span>
+            <span className="flex-1">{s.label}</span>
+            {!s.required && (
+              <span className="font-mono text-[10px] text-neutral-600">опц</span>
+            )}
+          </button>
         </li>
       ))}
     </ol>
