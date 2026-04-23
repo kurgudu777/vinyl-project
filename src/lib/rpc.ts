@@ -3,6 +3,7 @@ import type {
   ActiveRun,
   CancelResult,
   PlaybookName,
+  PlaybookStep,
   RecentRun,
   RunDetails,
   TriggerResult,
@@ -48,4 +49,14 @@ export async function cancelRun(runId: number): Promise<CancelResult> {
   });
   if (error) throw error;
   return data as CancelResult;
+}
+
+export async function getPlaybookSteps(
+  playbookName: PlaybookName,
+): Promise<PlaybookStep[]> {
+  const { data, error } = await getSupabase().rpc('get_playbook_steps', {
+    p_playbook_name: playbookName,
+  });
+  if (error) throw error;
+  return (data ?? []) as PlaybookStep[];
 }

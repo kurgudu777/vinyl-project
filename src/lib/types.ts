@@ -67,6 +67,14 @@ export interface RunDetails {
   steps: RunStep[];
 }
 
+export interface PlaybookStep {
+  playbook_name: PlaybookName;
+  step_order: number;
+  label: string;
+  workflow_id: string;
+  required: boolean;
+}
+
 // trigger_playbook responses
 export type TriggerResult =
   | { status: 'enqueued'; run_id: number; playbook_name: PlaybookName }
