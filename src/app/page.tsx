@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { triggerPlaybook, triggerSingleStep } from '@/lib/rpc';
 import type {
   ActiveRun,
@@ -37,14 +37,24 @@ const PLAYBOOK_LABEL: Record<PlaybookName, string> = PLAYBOOKS.reduce(
 
 type BoolByPlaybook = Record<PlaybookName, boolean>;
 
+type TriggerPhase = 'idle' | 'triggering' | 'confirmed' | 'already_running' | 'error';
+type TriggerState = { phase: TriggerPhase; message?: string };
+type TriggerStateMap = Record<PlaybookName, TriggerState>;
+
 const INITIAL_FALSE: BoolByPlaybook = {
   sync_stocks: false,
   sync_prices: false,
   sync_all: false,
 };
 
+const INITIAL_TRIGGER_STATE: TriggerStateMap = {
+  sync_stocks: { phase: 'idle' },
+  sync_prices: { phase: 'idle' },
+  sync_all: { phase: 'idle' },
+};
+
 export default function HomePage() {
-  const [isTriggering, setIsTriggering] = useState<BoolByPlaybook>(INITIAL_FALSE);
+  const [triggerState, setTriggerState] = useState<TriggerStateMap>(INITIAL_TRIGGER_STATE);
   const [stepMode, setStepMode] = useState<BoolByPlaybook>(INITIAL_FALSE);
   const [expanded, setExpanded] = useState<BoolByPlaybook>(INITIAL_FALSE);
 
@@ -52,15 +62,58 @@ export default function HomePage() {
   const { run: activeRun } = useCurrentRun();
   const activePlaybook: PlaybookName | null = activeRun?.playbook_name ?? null;
 
+  // Если плейбук был confirmed, а его активный ран закончился (activePlaybook
+  // сменился на что-то другое или null) — сбрасываем карточку в idle.
+  useEffect(() => {
+    setTriggerState((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      (Object.keys(prev) as PlaybookName[]).forEach((name) => {
+        if (prev[name].phase === 'confirmed' && activePlaybook !== name) {
+          next[name] = { phase: 'idle' };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [activePlaybook]);
+
+  const setPhase = (name: PlaybookName, state: TriggerState) => {
+    setTriggerState((prev) => ({ ...prev, [name]: state }));
+  };
+
   const handleTrigger = async (name: PlaybookName) => {
-    setIsTriggering((prev) => ({ ...prev, [name]: true }));
+    setPhase(name, { phase: 'triggering' });
     try {
       const result = await triggerPlaybook(name);
       console.log('trigger result', name, result);
+
+      if (result.status === 'enqueued') {
+        // Успех: состояние 'confirmed' держится пока activeRun этого плейбука
+        // не завершится — сброс делает эффект в компоненте. Это даёт визуальный
+        // «залип» кнопки: пользователь понимает, что она уже сработала.
+        setPhase(name, { phase: 'confirmed', message: `run #${result.run_id}` });
+      } else if (result.status === 'already_running') {
+        setPhase(name, {
+          phase: 'already_running',
+          message: `уже выполняется (run #${result.run_id})`,
+        });
+        setTimeout(() => {
+          setTriggerState((prev) =>
+            prev[name].phase === 'already_running'
+              ? { ...prev, [name]: { phase: 'idle' } }
+              : prev,
+          );
+        }, 3000);
+      } else {
+        setPhase(name, { phase: 'error', message: result.error ?? 'unknown error' });
+      }
     } catch (err) {
       console.error('trigger failed', name, err);
-    } finally {
-      setIsTriggering((prev) => ({ ...prev, [name]: false }));
+      setPhase(name, {
+        phase: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   };
 
@@ -92,7 +145,7 @@ export default function HomePage() {
           <PlaybookCardView
             key={p.name}
             card={p}
-            pending={isTriggering[p.name]}
+            triggerState={triggerState[p.name]}
             stepMode={stepMode[p.name]}
             expanded={expanded[p.name]}
             activePlaybook={activePlaybook}
@@ -125,7 +178,7 @@ export default function HomePage() {
 
 type PlaybookCardViewProps = {
   card: PlaybookCard;
-  pending: boolean;
+  triggerState: TriggerState;
   stepMode: boolean;
   expanded: boolean;
   activePlaybook: PlaybookName | null;
@@ -136,7 +189,7 @@ type PlaybookCardViewProps = {
 
 function PlaybookCardView({
   card,
-  pending,
+  triggerState,
   stepMode,
   expanded,
   activePlaybook,
@@ -144,28 +197,74 @@ function PlaybookCardView({
   onToggleStepMode,
   onToggleExpanded,
 }: PlaybookCardViewProps) {
-  const containerClass =
-    'group flex flex-col gap-3 rounded-lg border p-5 transition duration-150 ' +
-    (pending
-      ? 'cursor-wait border-blue-900 bg-blue-950/30'
-      : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 hover:bg-[#1a1a1a]');
+  const phase = triggerState.phase;
+  const isActive = activePlaybook === card.name;
+  const busy = phase === 'triggering';
+  // Кнопка заблокирована пока: 1) идёт запрос, 2) этот плейбук уже выполняется,
+  // 3) другой плейбук выполняется (параллельный запуск всё равно вернёт already_running).
+  const disabled = busy || isActive || (activePlaybook !== null && !isActive);
+
+  // Цвет рамки/фона зависит от фазы и активности
+  const borderBg =
+    phase === 'triggering'
+      ? 'border-blue-700 bg-blue-950/40'
+      : phase === 'confirmed' || isActive
+        ? 'border-emerald-700 bg-emerald-950/30'
+        : phase === 'already_running'
+          ? 'border-amber-700 bg-amber-950/30'
+          : phase === 'error'
+            ? 'border-red-800 bg-red-950/30'
+            : activePlaybook !== null
+              ? 'border-neutral-800 bg-neutral-900 opacity-50'
+              : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 hover:bg-[#1a1a1a]';
+
+  const cursor = busy ? 'cursor-wait' : disabled ? 'cursor-not-allowed' : '';
+  const containerClass = `group flex flex-col gap-2 rounded-lg border p-4 transition duration-150 ${borderBg} ${cursor}`;
+
+  // Подпись под заголовком — меняется в зависимости от фазы, чтобы была явная
+  // обратная связь о том, что запуск реально произошёл.
+  let statusLine: ReactNode;
+  if (phase === 'triggering') {
+    statusLine = (
+      <span className="inline-flex items-center gap-1.5 text-blue-300">
+        <Spinner />
+        Запускаем…
+      </span>
+    );
+  } else if (phase === 'confirmed' || isActive) {
+    statusLine = (
+      <span className="inline-flex items-center gap-1.5 text-emerald-300">
+        <RunningDot />
+        Выполняется{phase === 'confirmed' && triggerState.message ? ` · ${triggerState.message}` : ''}
+      </span>
+    );
+  } else if (phase === 'already_running') {
+    statusLine = (
+      <span className="text-amber-300">⚠ {triggerState.message}</span>
+    );
+  } else if (phase === 'error') {
+    statusLine = (
+      <span className="text-red-300">✗ {triggerState.message}</span>
+    );
+  } else {
+    statusLine = <span>{card.description}</span>;
+  }
 
   return (
     <div className={containerClass}>
       <button
         type="button"
-        disabled={pending}
+        disabled={disabled}
         onClick={onTrigger}
-        className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
       >
-        <div className="text-lg font-medium">{card.label}</div>
-        <div className="font-mono text-xs text-neutral-500">
-          {pending ? 'Запущено…' : card.description}
+        <div className="text-base font-medium">{card.label}</div>
+        <div className="font-mono text-xs text-neutral-400 min-h-[16px] mt-0.5">
+          {statusLine}
         </div>
-        <div className="mt-2 text-xs text-neutral-600">Последний запуск: —</div>
       </button>
 
-      <div className="flex items-center justify-between border-t border-neutral-800/70 pt-3">
+      <div className="flex items-center justify-between border-t border-neutral-800/70 pt-2">
         <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-neutral-400">
           <input
             type="checkbox"
@@ -212,6 +311,33 @@ function PlaybookCardView({
         />
       )}
     </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      className="animate-spin"
+      aria-hidden="true"
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+function RunningDot() {
+  return (
+    <span className="relative inline-flex h-2 w-2">
+      <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/70" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+    </span>
   );
 }
 
@@ -350,6 +476,7 @@ function RealtimeIndicator() {
 
 function CurrentRunCard() {
   const { run, details, loading, error } = useCurrentRun();
+  const [stepsOpen, setStepsOpen] = useState(false);
 
   if (loading) {
     return (
@@ -376,11 +503,18 @@ function CurrentRunCard() {
   }
 
   const label = PLAYBOOK_LABEL[run.playbook_name] ?? run.playbook_name;
-  const total = run.steps_total || 0;
-  const done = run.steps_done || 0;
+
+  // Истина — details.steps (один снимок из job_queue). Поля run.steps_*
+  // приходят отдельным запросом и могут отставать на сотни мс от details.
+  // Fallback на run.steps_* только если details ещё не загружен.
+  const total = details?.steps.length ?? run.steps_total ?? 0;
+  const done =
+    details?.steps.filter((s) => s.status === 'done').length ??
+    run.steps_done ??
+    0;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  const displayStep =
+  const currentStep =
     details?.steps.find((s) => s.status === 'running') ??
     details?.steps.find((s) => s.status === 'queued') ??
     null;
@@ -412,11 +546,48 @@ function CurrentRunCard() {
         />
       </div>
 
-      {displayStep ? (
-        <CurrentStepRow step={displayStep} />
+      {currentStep ? (
+        <CurrentStepRow step={currentStep} />
       ) : (
         <div className="rounded-md bg-neutral-950/60 px-3 py-2.5 text-xs text-neutral-500">
           завершается…
+        </div>
+      )}
+
+      {details && details.steps.length > 0 && (
+        <div className="mt-3 border-t border-neutral-800 pt-3">
+          <button
+            type="button"
+            onClick={() => setStepsOpen((v) => !v)}
+            aria-expanded={stepsOpen}
+            className="flex w-full items-center justify-between rounded-md px-1 py-1 text-xs text-neutral-400 transition hover:text-neutral-200"
+          >
+            <span>
+              {stepsOpen ? 'Скрыть шаги' : 'Показать все шаги'}
+            </span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={'transition-transform ' + (stepsOpen ? 'rotate-180' : '')}
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {stepsOpen && (
+            <ol className="mt-2 flex flex-col gap-0 rounded-md bg-neutral-950/40 px-2 py-1.5">
+              {details.steps.map((s) => (
+                <StepDetailRow key={s.job_id} step={s} />
+              ))}
+            </ol>
+          )}
         </div>
       )}
     </div>
@@ -478,6 +649,17 @@ function HistoryList() {
   const { runs, loading, error } = useRecentRuns(10);
   const [expandedRunId, setExpandedRunId] = useState<number | null>(null);
 
+  // Если раскрытый запуск стал активным (running/pending) — сворачиваем его,
+  // шаги активного запуска показываются в «Текущий запуск».
+  useEffect(() => {
+    if (expandedRunId === null) return;
+    const run = runs.find((r) => r.run_id === expandedRunId);
+    if (!run) return;
+    if (run.status === 'running' || run.status === 'pending') {
+      setExpandedRunId(null);
+    }
+  }, [runs, expandedRunId]);
+
   if (loading && runs.length === 0) {
     return (
       <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-sm text-neutral-500">
@@ -535,13 +717,22 @@ function HistoryRow({ run, expanded, onToggle }: HistoryRowProps) {
   const effectiveStatus = deriveEffectiveStatus(run);
   const duration = formatDuration(run.duration_sec);
 
+  // Активные запуски не раскрываем в истории — шаги показываются в «Текущий запуск»
+  const isActive = effectiveStatus === 'running' || effectiveStatus === 'pending';
+
   return (
     <li>
       <button
         type="button"
-        onClick={onToggle}
+        onClick={isActive ? undefined : onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-neutral-800/50 focus:outline-none focus-visible:bg-neutral-800/50"
+        disabled={isActive}
+        className={
+          'flex w-full items-center gap-3 px-4 py-3 text-left transition focus:outline-none ' +
+          (isActive
+            ? 'cursor-default'
+            : 'hover:bg-neutral-800/50 focus-visible:bg-neutral-800/50')
+        }
       >
         <StatusIcon status={effectiveStatus} />
 
@@ -558,29 +749,32 @@ function HistoryRow({ run, expanded, onToggle }: HistoryRowProps) {
             <RelativeTime iso={run.started_at} />
             {duration ? ` · ${duration}` : ''}
             {run.triggered_by ? ` · ${run.triggered_by}` : ''}
+            {isActive ? ' · показывается в «Текущий запуск»' : ''}
           </div>
         </div>
 
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={
-            'shrink-0 text-neutral-500 transition-transform ' +
-            (expanded ? 'rotate-180' : '')
-          }
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        {!isActive && (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={
+              'shrink-0 text-neutral-500 transition-transform ' +
+              (expanded ? 'rotate-180' : '')
+            }
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        )}
       </button>
 
-      {expanded && <RunDetailsPanel runId={run.run_id} />}
+      {expanded && !isActive && <RunDetailsPanel runId={run.run_id} />}
     </li>
   );
 }
