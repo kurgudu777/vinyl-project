@@ -235,7 +235,7 @@ function PlaybookCardView({
     statusLine = (
       <span className="inline-flex items-center gap-1.5 text-emerald-300">
         <RunningDot />
-        Выполняется{phase === 'confirmed' && triggerState.message ? ` · ${triggerState.message}` : ''}
+        Выполняется
       </span>
     );
   } else if (phase === 'already_running') {
@@ -746,7 +746,7 @@ function HistoryRow({ run, expanded, onToggle }: HistoryRowProps) {
             </span>
           </div>
           <div className="mt-0.5 font-mono text-[11px] text-neutral-500">
-            <RelativeTime iso={run.started_at} />
+            {formatAbsoluteTime(run.started_at)}
             {duration ? ` · ${duration}` : ''}
             {run.triggered_by ? ` · ${run.triggered_by}` : ''}
             {isActive ? ' · показывается в «Текущий запуск»' : ''}
@@ -972,6 +972,44 @@ function formatRelative(iso: string, now: number): string {
   if (hrs < 24) return `${hrs} ч назад`;
   const days = Math.floor(hrs / 24);
   return `${days} дн назад`;
+}
+
+/**
+ * Абсолютное время. Если сегодня — HH:MM, если вчера — "вчера HH:MM",
+ * если в этом году — "DD MMM HH:MM", иначе — "DD.MM.YYYY HH:MM".
+ */
+function formatAbsoluteTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+
+  const hm = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) return hm;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate();
+  if (isYesterday) return `вчера ${hm}`;
+
+  const sameYear = d.getFullYear() === now.getFullYear();
+  if (sameYear) {
+    const dm = d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+    return `${dm} ${hm}`;
+  }
+
+  const dmy = d.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  return `${dmy} ${hm}`;
 }
 
 function useElapsed(startedAt: string | null): string | null {
