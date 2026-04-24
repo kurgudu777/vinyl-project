@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { triggerPlaybook } from '@/lib/rpc';
-import type { ActiveRun, PlaybookName, PlaybookStep, RunDetails, RunStep } from '@/lib/types';
+import type { ActiveRun, PlaybookName, PlaybookStep, RunStep } from '@/lib/types';
 import { usePlaybookSteps } from '@/hooks/usePlaybookSteps';
 import { useCurrentRun } from '@/hooks/useCurrentRun';
 
