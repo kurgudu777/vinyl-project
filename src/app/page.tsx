@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { triggerPlaybook } from '@/lib/rpc';
-import type { ActiveRun, PlaybookName, PlaybookStep, RunStep } from '@/lib/types';
+import { triggerPlaybook, triggerSingleStep } from '@/lib/rpc';
+import type {
+  ActiveRun,
+  PlaybookName,
+  PlaybookStep,
+  RunStep,
+  SingleStepResult,
+} from '@/lib/types';
 import { usePlaybookSteps } from '@/hooks/usePlaybookSteps';
 import { useCurrentRun } from '@/hooks/useCurrentRun';
 
@@ -38,6 +44,10 @@ export default function HomePage() {
   const [isTriggering, setIsTriggering] = useState<BoolByPlaybook>(INITIAL_FALSE);
   const [stepMode, setStepMode] = useState<BoolByPlaybook>(INITIAL_FALSE);
   const [expanded, setExpanded] = useState<BoolByPlaybook>(INITIAL_FALSE);
+
+  // Активный плейбук (если есть) — используется для блокировки кнопок шагов
+  const { run: activeRun } = useCurrentRun();
+  const activePlaybook: PlaybookName | null = activeRun?.playbook_name ?? null;
 
   const handleTrigger = async (name: PlaybookName) => {
     setIsTriggering((prev) => ({ ...prev, [name]: true }));
@@ -85,6 +95,7 @@ export default function HomePage() {
             pending={isTriggering[p.name]}
             stepMode={stepMode[p.name]}
             expanded={expanded[p.name]}
+            activePlaybook={activePlaybook}
             onTrigger={() => handleTrigger(p.name)}
             onToggleStepMode={() => toggleStepMode(p.name)}
             onToggleExpanded={() => toggleExpanded(p.name)}
@@ -119,6 +130,7 @@ type PlaybookCardViewProps = {
   pending: boolean;
   stepMode: boolean;
   expanded: boolean;
+  activePlaybook: PlaybookName | null;
   onTrigger: () => void;
   onToggleStepMode: () => void;
   onToggleExpanded: () => void;
@@ -129,6 +141,7 @@ function PlaybookCardView({
   pending,
   stepMode,
   expanded,
+  activePlaybook,
   onTrigger,
   onToggleStepMode,
   onToggleExpanded,
@@ -194,13 +207,46 @@ function PlaybookCardView({
         </button>
       </div>
 
-      {stepMode && expanded && <StepList name={card.name} />}
+      {stepMode && expanded && (
+        <StepList
+          name={card.name}
+          parentPlaybookActive={activePlaybook === card.name}
+        />
+      )}
     </div>
   );
 }
 
-function StepList({ name }: { name: PlaybookName }) {
+type StepListProps = {
+  name: PlaybookName;
+  parentPlaybookActive: boolean;
+};
+
+function StepList({ name, parentPlaybookActive }: StepListProps) {
   const { steps, loading, error } = usePlaybookSteps(name, true);
+  // состояние запуска отдельных шагов: step_order -> pending / result / error
+  const [pendingStep, setPendingStep] = useState<number | null>(null);
+  const [stepError, setStepError] = useState<string | null>(null);
+
+  const handleRunStep = async (stepOrder: number) => {
+    if (pendingStep !== null) return; // уже что-то запускается
+    if (parentPlaybookActive) return;
+
+    setPendingStep(stepOrder);
+    setStepError(null);
+    try {
+      const result: SingleStepResult = await triggerSingleStep(name, stepOrder);
+      console.log('single step result', name, stepOrder, result);
+      if (!result.ok) {
+        setStepError(result.message);
+      }
+    } catch (err) {
+      console.error('single step failed', name, stepOrder, err);
+      setStepError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPendingStep(null);
+    }
+  };
 
   if (loading) {
     return <div className="pl-1 text-xs text-neutral-500">Загружаю шаги…</div>;
@@ -213,25 +259,78 @@ function StepList({ name }: { name: PlaybookName }) {
   }
 
   return (
-    <ol className="flex flex-col divide-y divide-neutral-700 pl-1">
-      {steps.map((s: PlaybookStep) => (
-        <li key={s.step_order}>
-          <button
-            type="button"
-            onClick={() => console.log('step click', name, s.step_order, s.label)}
-            className="flex w-full items-baseline gap-2 py-1.5 text-left text-xs text-neutral-300 transition hover:text-white hover:bg-neutral-800/50 -mx-1 px-1 rounded"
-          >
-            <span className="w-5 shrink-0 font-mono tabular-nums text-neutral-500">
-              {s.step_order}.
-            </span>
-            <span className="flex-1">{s.label}</span>
-            {!s.required && (
-              <span className="font-mono text-[10px] text-neutral-600">опц</span>
-            )}
-          </button>
-        </li>
-      ))}
-    </ol>
+    <div className="flex flex-col gap-2">
+      <ol className="flex flex-col divide-y divide-neutral-700 pl-1">
+        {steps.map((s: PlaybookStep) => {
+          const isPending = pendingStep === s.step_order;
+          const isDisabled =
+            parentPlaybookActive || (pendingStep !== null && !isPending);
+
+          return (
+            <li key={s.step_order}>
+              <button
+                type="button"
+                disabled={isDisabled}
+                onClick={() => handleRunStep(s.step_order)}
+                title={
+                  parentPlaybookActive
+                    ? 'Нельзя запустить: активен родной плейбук'
+                    : 'Запустить этот шаг отдельно'
+                }
+                className={
+                  'group flex w-full items-baseline gap-2 py-1.5 text-left text-xs transition -mx-1 px-1 rounded ' +
+                  (isDisabled
+                    ? 'cursor-not-allowed text-neutral-600'
+                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800/50')
+                }
+              >
+                <span
+                  className={
+                    'w-5 shrink-0 font-mono tabular-nums ' +
+                    (isDisabled ? 'text-neutral-700' : 'text-neutral-500')
+                  }
+                >
+                  {s.step_order}.
+                </span>
+                <span className="flex-1">{s.label}</span>
+
+                {!s.required && (
+                  <span className="font-mono text-[10px] text-neutral-600">опц</span>
+                )}
+
+                {isPending ? (
+                  <span className="font-mono text-[10px] text-blue-400">
+                    запуск…
+                  </span>
+                ) : (
+                  <span
+                    className={
+                      'font-mono text-[10px] ' +
+                      (isDisabled
+                        ? 'text-neutral-700'
+                        : 'text-neutral-500 group-hover:text-emerald-400')
+                    }
+                    aria-hidden="true"
+                  >
+                    ▶
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
+      {parentPlaybookActive && (
+        <div className="pl-1 text-[10px] text-neutral-500">
+          Родной плейбук сейчас выполняется — отдельный запуск заблокирован
+        </div>
+      )}
+
+      {stepError && (
+        <div className="pl-1 text-[11px] text-red-400">⚠ {stepError}</div>
+      )}
+    </div>
   );
 }
 

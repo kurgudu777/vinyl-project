@@ -6,6 +6,7 @@ import type {
   PlaybookStep,
   RecentRun,
   RunDetails,
+  SingleStepResult,
   TriggerResult,
 } from './types';
 
@@ -59,4 +60,18 @@ export async function getPlaybookSteps(
   });
   if (error) throw error;
   return (data ?? []) as PlaybookStep[];
+}
+
+export async function triggerSingleStep(
+  playbookName: PlaybookName,
+  stepOrder: number,
+  triggeredBy: string = 'manual_step',
+): Promise<SingleStepResult> {
+  const { data, error } = await getSupabase().rpc('enqueue_single_step', {
+    p_playbook: playbookName,
+    p_step_order: stepOrder,
+    p_triggered_by: triggeredBy,
+  });
+  if (error) throw error;
+  return data as SingleStepResult;
 }

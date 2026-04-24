@@ -90,3 +90,12 @@ export type CancelResult =
       note: string;
     }
   | { status: 'error'; error: 'run_not_found' | 'not_active'; run_id: number };
+
+export type SingleStepResult =
+  | { ok: true; run_id: number }
+  | {
+      ok: false;
+      error: 'step_not_found' | 'webhook_path_null' | 'playbook_active';
+      message: string;
+      active_run_id?: number;
+    };
