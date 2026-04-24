@@ -6,6 +6,12 @@ import { getSupabase } from '@/lib/supabase';
 import type { ActiveRun, RunDetails } from '@/lib/types';
 
 type State = {
+  /** Все активные раны (running/pending). Используется для определения,
+   * какие плейбуки сейчас занимают «слот» — нужно для логики disabled
+   * на карточках плейбуков. Бэкенд разрешает параллельные раны если они
+   * не конфликтуют (например sync_stocks + sync_prices). */
+  runs: ActiveRun[];
+  /** Главный активный ран (первый из runs). Показывается в «Текущий запуск». */
   run: ActiveRun | null;
   details: RunDetails | null;
   loading: boolean;
@@ -13,6 +19,7 @@ type State = {
 };
 
 const INITIAL: State = {
+  runs: [],
   run: null,
   details: null,
   loading: true,
@@ -49,14 +56,14 @@ export function useCurrentRun(): State {
 
         const run = runs[0] ?? null;
         if (!run) {
-          setState({ run: null, details: null, loading: false, error: null });
+          setState({ runs: [], run: null, details: null, loading: false, error: null });
           return;
         }
 
         const details = await getRunStatus(run.run_id);
         if (disposed || myReqId !== reqIdRef.current) return;
 
-        setState({ run, details, loading: false, error: null });
+        setState({ runs, run, details, loading: false, error: null });
       } catch (err) {
         if (disposed || myReqId !== reqIdRef.current) return;
         setState((prev) => ({

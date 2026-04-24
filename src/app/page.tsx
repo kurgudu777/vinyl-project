@@ -58,25 +58,33 @@ export default function HomePage() {
   const [stepMode, setStepMode] = useState<BoolByPlaybook>(INITIAL_FALSE);
   const [expanded, setExpanded] = useState<BoolByPlaybook>(INITIAL_FALSE);
 
-  // Активный плейбук (если есть) — используется для блокировки кнопок шагов
-  const { run: activeRun } = useCurrentRun();
-  const activePlaybook: PlaybookName | null = activeRun?.playbook_name ?? null;
+  // Активные плейбуки (running/pending). Используется для логики:
+  // - блокировки карточек, конфликтующих с уже идущими ранами
+  // - сброса confirmed-состояния когда плейбук завершился
+  // Правила конфликта (зеркалят бэкенд _playbooks_conflict):
+  //   sync_all конфликтует со всем; одинаковые плейбуки конфликтуют;
+  //   sync_stocks + sync_prices параллельно разрешены.
+  const { runs: activeRuns } = useCurrentRun();
+  const activePlaybooks = new Set<PlaybookName>(
+    activeRuns.map((r) => r.playbook_name),
+  );
 
-  // Если плейбук был confirmed, а его активный ран закончился (activePlaybook
-  // сменился на что-то другое или null) — сбрасываем карточку в idle.
+  // Если плейбук был confirmed, а его активный ран закончился —
+  // сбрасываем карточку в idle.
   useEffect(() => {
     setTriggerState((prev) => {
       let changed = false;
       const next = { ...prev };
       (Object.keys(prev) as PlaybookName[]).forEach((name) => {
-        if (prev[name].phase === 'confirmed' && activePlaybook !== name) {
+        if (prev[name].phase === 'confirmed' && !activePlaybooks.has(name)) {
           next[name] = { phase: 'idle' };
           changed = true;
         }
       });
       return changed ? next : prev;
     });
-  }, [activePlaybook]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRuns]);
 
   const setPhase = (name: PlaybookName, state: TriggerState) => {
     setTriggerState((prev) => ({ ...prev, [name]: state }));
@@ -148,7 +156,7 @@ export default function HomePage() {
             triggerState={triggerState[p.name]}
             stepMode={stepMode[p.name]}
             expanded={expanded[p.name]}
-            activePlaybook={activePlaybook}
+            activePlaybooks={activePlaybooks}
             onTrigger={() => handleTrigger(p.name)}
             onToggleStepMode={() => toggleStepMode(p.name)}
             onToggleExpanded={() => toggleExpanded(p.name)}
@@ -181,7 +189,7 @@ type PlaybookCardViewProps = {
   triggerState: TriggerState;
   stepMode: boolean;
   expanded: boolean;
-  activePlaybook: PlaybookName | null;
+  activePlaybooks: Set<PlaybookName>;
   onTrigger: () => void;
   onToggleStepMode: () => void;
   onToggleExpanded: () => void;
@@ -192,17 +200,26 @@ function PlaybookCardView({
   triggerState,
   stepMode,
   expanded,
-  activePlaybook,
+  activePlaybooks,
   onTrigger,
   onToggleStepMode,
   onToggleExpanded,
 }: PlaybookCardViewProps) {
   const phase = triggerState.phase;
-  const isActive = activePlaybook === card.name;
+  const isActive = activePlaybooks.has(card.name);
   const busy = phase === 'triggering';
-  // Кнопка заблокирована пока: 1) идёт запрос, 2) этот плейбук уже выполняется,
-  // 3) другой плейбук выполняется (параллельный запуск всё равно вернёт already_running).
-  const disabled = busy || isActive || (activePlaybook !== null && !isActive);
+
+  // Логика конфликта зеркалит бэкенд claude_meta._playbooks_conflict:
+  //   - sync_all конфликтует со всем
+  //   - одинаковые плейбуки конфликтуют (повторный запуск того же)
+  //   - sync_stocks и sync_prices между собой НЕ конфликтуют → параллельны
+  const conflictsWithActive = Array.from(activePlaybooks).some((active) => {
+    if (active === card.name) return true; // тот же
+    if (active === 'sync_all' || card.name === 'sync_all') return true; // sync_all со всем
+    return false;
+  });
+
+  const disabled = busy || conflictsWithActive;
 
   // Цвет рамки/фона зависит от фазы и активности
   const borderBg =
@@ -214,7 +231,7 @@ function PlaybookCardView({
           ? 'border-amber-700 bg-amber-950/30'
           : phase === 'error'
             ? 'border-red-800 bg-red-950/30'
-            : activePlaybook !== null
+            : conflictsWithActive
               ? 'border-neutral-800 bg-neutral-900 opacity-50'
               : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 hover:bg-[#1a1a1a]';
 
@@ -307,7 +324,7 @@ function PlaybookCardView({
       {stepMode && expanded && (
         <StepList
           name={card.name}
-          parentPlaybookActive={activePlaybook === card.name}
+          parentPlaybookActive={activePlaybooks.has(card.name)}
         />
       )}
     </div>
