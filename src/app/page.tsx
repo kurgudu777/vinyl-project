@@ -6,11 +6,14 @@ import type {
   ActiveRun,
   PlaybookName,
   PlaybookStep,
+  RecentRun,
   RunStep,
   SingleStepResult,
 } from '@/lib/types';
 import { usePlaybookSteps } from '@/hooks/usePlaybookSteps';
 import { useCurrentRun } from '@/hooks/useCurrentRun';
+import { useRecentRuns } from '@/hooks/useRecentRuns';
+import { useRunDetails } from '@/hooks/useRunDetails';
 
 type PlaybookCard = {
   name: PlaybookName;
@@ -77,14 +80,11 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <header className="mb-8">
+    <main className="mx-auto max-w-6xl px-6 py-6">
+      <header className="mb-5">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           Синхронизация
         </h1>
-        <p className="mt-1 text-sm text-neutral-400">
-          Запуск плейбуков через очередь Supabase
-        </p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -103,8 +103,8 @@ export default function HomePage() {
         ))}
       </section>
 
-      <section className="mt-10">
-        <div className="mb-3 flex items-center justify-between">
+      <section className="mt-6">
+        <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Текущий запуск
           </h2>
@@ -113,13 +113,11 @@ export default function HomePage() {
         <CurrentRunCard />
       </section>
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+      <section className="mt-6">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
           История
         </h2>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-sm text-neutral-500">
-          История запусков появится здесь
-        </div>
+        <HistoryList />
       </section>
     </main>
   );
@@ -251,11 +249,11 @@ function StepList({ name, parentPlaybookActive }: StepListProps) {
   if (loading) {
     return <div className="pl-1 text-xs text-neutral-500">Загружаю шаги…</div>;
   }
+
   if (error) {
-    return <div className="pl-1 text-xs text-red-400">Ошибка: {error}</div>;
-  }
-  if (steps.length === 0) {
-    return <div className="pl-1 text-xs text-neutral-500">Нет шагов</div>;
+    return (
+      <div className="pl-1 text-xs text-red-400">Ошибка загрузки: {error}</div>
+    );
   }
 
   return (
@@ -472,7 +470,294 @@ function StatusBadge({ status }: { status: ActiveRun['status'] }) {
   );
 }
 
-// ─── helpers ──────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
+// История запусков
+// ────────────────────────────────────────────────────────────────────
+
+function HistoryList() {
+  const { runs, loading, error } = useRecentRuns(10);
+  const [expandedRunId, setExpandedRunId] = useState<number | null>(null);
+
+  if (loading && runs.length === 0) {
+    return (
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-sm text-neutral-500">
+        Загружаю…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-900/60 bg-red-950/30 p-6 text-sm text-red-300">
+        Ошибка: {error}
+      </div>
+    );
+  }
+
+  if (runs.length === 0) {
+    return (
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-sm text-neutral-500">
+        Запусков ещё не было
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
+      <ul className="divide-y divide-neutral-800">
+        {runs.map((run) => (
+          <HistoryRow
+            key={run.run_id}
+            run={run}
+            expanded={expandedRunId === run.run_id}
+            onToggle={() =>
+              setExpandedRunId((prev) => (prev === run.run_id ? null : run.run_id))
+            }
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+type HistoryRowProps = {
+  run: RecentRun;
+  expanded: boolean;
+  onToggle: () => void;
+};
+
+function HistoryRow({ run, expanded, onToggle }: HistoryRowProps) {
+  const label = PLAYBOOK_LABEL[run.playbook_name] ?? run.playbook_name;
+  const total = run.steps_total || 0;
+  const done = run.steps_done || 0;
+  const failed = run.steps_failed || 0;
+
+  const effectiveStatus = deriveEffectiveStatus(run);
+  const duration = formatDuration(run.duration_sec);
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-neutral-800/50 focus:outline-none focus-visible:bg-neutral-800/50"
+      >
+        <StatusIcon status={effectiveStatus} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="truncate text-sm font-medium text-neutral-200">
+              {label}
+            </span>
+            <span className="font-mono text-[11px] text-neutral-500 tabular-nums">
+              {failed > 0 ? `${done}/${total} · ${failed} ✗` : `${done}/${total}`}
+            </span>
+          </div>
+          <div className="mt-0.5 font-mono text-[11px] text-neutral-500">
+            <RelativeTime iso={run.started_at} />
+            {duration ? ` · ${duration}` : ''}
+            {run.triggered_by ? ` · ${run.triggered_by}` : ''}
+          </div>
+        </div>
+
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={
+            'shrink-0 text-neutral-500 transition-transform ' +
+            (expanded ? 'rotate-180' : '')
+          }
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {expanded && <RunDetailsPanel runId={run.run_id} />}
+    </li>
+  );
+}
+
+function RunDetailsPanel({ runId }: { runId: number }) {
+  const { details, loading, error } = useRunDetails(runId, true);
+
+  if (loading) {
+    return (
+      <div className="border-t border-neutral-800 bg-neutral-950/50 px-4 py-3 text-xs text-neutral-500">
+        Загружаю шаги…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border-t border-neutral-800 bg-neutral-950/50 px-4 py-3 text-xs text-red-400">
+        Ошибка: {error}
+      </div>
+    );
+  }
+
+  if (!details || details.steps.length === 0) {
+    return (
+      <div className="border-t border-neutral-800 bg-neutral-950/50 px-4 py-3 text-xs text-neutral-500">
+        Данных о шагах нет
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-neutral-800 bg-neutral-950/50 px-4 py-3">
+      <ol className="flex flex-col gap-0">
+        {details.steps.map((s) => (
+          <StepDetailRow key={s.job_id} step={s} />
+        ))}
+      </ol>
+      {details.run.notes && (
+        <div className="mt-2 rounded bg-neutral-900 px-2 py-1.5 text-[11px] text-neutral-400">
+          <span className="text-neutral-500">notes: </span>
+          {details.run.notes}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StepDetailRow({ step }: { step: RunStep }) {
+  const dur = formatStepDuration(step);
+  const isFailed = step.status === 'failed';
+
+  return (
+    <li className="flex items-start gap-2 py-1 text-xs">
+      <span className="mt-0.5 shrink-0">
+        <StepStatusIcon status={step.status} />
+      </span>
+      <span className="w-5 shrink-0 font-mono tabular-nums text-neutral-600">
+        {step.step_order}.
+      </span>
+      <div className="min-w-0 flex-1">
+        <div
+          className={
+            'flex items-baseline gap-2 ' +
+            (isFailed ? 'text-red-300' : 'text-neutral-300')
+          }
+        >
+          <span className="flex-1 truncate">{step.label}</span>
+          {dur && (
+            <span className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-500">
+              {dur}
+            </span>
+          )}
+        </div>
+        {step.error_message && (
+          <div className="mt-0.5 font-mono text-[10px] text-red-400 whitespace-pre-wrap break-words">
+            {step.error_message}
+          </div>
+        )}
+        {step.attempt > 1 && (
+          <div className="mt-0.5 font-mono text-[10px] text-neutral-500">
+            попытка {step.attempt} из {step.max_attempts}
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Status visuals
+// ────────────────────────────────────────────────────────────────────
+
+type EffectiveStatus =
+  | 'running'
+  | 'success'
+  | 'partial'
+  | 'failed'
+  | 'cancelled'
+  | 'pending';
+
+function deriveEffectiveStatus(run: RecentRun): EffectiveStatus {
+  if (run.status === 'running') return 'running';
+  if (run.status === 'pending') return 'pending';
+  if (run.status === 'cancelled') return 'cancelled';
+  if (run.status === 'failed') return 'failed';
+  // completed — но если среди шагов есть failed, считаем partial
+  if (run.status === 'completed' && (run.steps_failed ?? 0) > 0) return 'partial';
+  return 'success';
+}
+
+function StatusIcon({ status }: { status: EffectiveStatus }) {
+  // Крупная круглая иконка слева от строки
+  const base =
+    'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold';
+  switch (status) {
+    case 'success':
+      return (
+        <span className={base + ' bg-emerald-950/60 text-emerald-400'}>✓</span>
+      );
+    case 'failed':
+      return <span className={base + ' bg-red-950/60 text-red-400'}>✗</span>;
+    case 'partial':
+      return (
+        <span className={base + ' bg-amber-950/60 text-amber-400'}>!</span>
+      );
+    case 'cancelled':
+      return (
+        <span className={base + ' bg-neutral-800 text-neutral-500'}>−</span>
+      );
+    case 'running':
+      return (
+        <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/40" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+      );
+    case 'pending':
+    default:
+      return (
+        <span className={base + ' bg-neutral-800 text-neutral-400'}>·</span>
+      );
+  }
+}
+
+function StepStatusIcon({ status }: { status: RunStep['status'] }) {
+  const base =
+    'inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold leading-none';
+  switch (status) {
+    case 'done':
+      return (
+        <span className={base + ' bg-emerald-950/60 text-emerald-400'}>✓</span>
+      );
+    case 'failed':
+      return <span className={base + ' bg-red-950/60 text-red-400'}>✗</span>;
+    case 'cancelled':
+      return (
+        <span className={base + ' bg-neutral-800 text-neutral-500'}>−</span>
+      );
+    case 'running':
+      return (
+        <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center">
+          <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/50" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        </span>
+      );
+    case 'queued':
+    default:
+      return (
+        <span className={base + ' bg-neutral-800 text-neutral-500'}>·</span>
+      );
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// helpers
+// ────────────────────────────────────────────────────────────────────
 
 function RelativeTime({ iso }: { iso: string }) {
   const [now, setNow] = useState(() => Date.now());
@@ -490,7 +775,9 @@ function formatRelative(iso: string, now: number): string {
   const min = Math.floor(delta / 60);
   if (min < 60) return `${min} мин назад`;
   const hrs = Math.floor(min / 60);
-  return `${hrs} ч назад`;
+  if (hrs < 24) return `${hrs} ч назад`;
+  const days = Math.floor(hrs / 24);
+  return `${days} дн назад`;
 }
 
 function useElapsed(startedAt: string | null): string | null {
@@ -502,6 +789,52 @@ function useElapsed(startedAt: string | null): string | null {
   }, [startedAt]);
   if (!startedAt) return null;
   const sec = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
+  if (sec < 60) return `${sec}с`;
+  const min = Math.floor(sec / 60);
+  const rest = sec % 60;
+  return `${min}м ${rest}с`;
+}
+
+/**
+ * Длительность запуска из duration_sec (число секунд, может прийти строкой).
+ * "193.3" -> "3м 13с", "45" -> "45с", null -> null.
+ */
+function formatDuration(sec: number | string | null): string | null {
+  if (sec == null) return null;
+  const n = typeof sec === 'string' ? parseFloat(sec) : sec;
+  if (!isFinite(n) || n < 0) return null;
+  const whole = Math.round(n);
+  if (whole < 60) return `${whole}с`;
+  const min = Math.floor(whole / 60);
+  const rest = whole % 60;
+  return `${min}м ${rest}с`;
+}
+
+/**
+ * Длительность шага. duration_ms в базе сейчас 0 у всех — считаем из
+ * started_at / finished_at если есть оба. Для running / queued — null.
+ */
+function formatStepDuration(step: RunStep): string | null {
+  if (step.duration_ms && step.duration_ms > 0) {
+    const sec = Math.round(step.duration_ms / 1000);
+    return formatDurationSec(sec);
+  }
+  if (step.started_at && step.finished_at) {
+    const sec = Math.max(
+      0,
+      Math.round(
+        (new Date(step.finished_at).getTime() -
+          new Date(step.started_at).getTime()) /
+          1000,
+      ),
+    );
+    return formatDurationSec(sec);
+  }
+  return null;
+}
+
+function formatDurationSec(sec: number): string {
+  if (sec < 1) return '<1с';
   if (sec < 60) return `${sec}с`;
   const min = Math.floor(sec / 60);
   const rest = sec % 60;

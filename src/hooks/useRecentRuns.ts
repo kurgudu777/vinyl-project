@@ -1,41 +1,39 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getActiveRuns, getRunStatus } from '@/lib/rpc';
+import { getRecentRuns } from '@/lib/rpc';
 import { getSupabase } from '@/lib/supabase';
-import type { ActiveRun, RunDetails } from '@/lib/types';
+import type { RecentRun } from '@/lib/types';
 
 type State = {
-  run: ActiveRun | null;
-  details: RunDetails | null;
+  runs: RecentRun[];
   loading: boolean;
   error: string | null;
 };
 
 const INITIAL: State = {
-  run: null,
-  details: null,
+  runs: [],
   loading: true,
   error: null,
 };
 
 /**
- * Подписка на активный playbook_run.
+ * Список последних запусков плейбуков.
  *
  * Стратегия: Realtime используется как триггер «пересчитай». На любое
  * событие в claude_meta.playbook_run или claude_meta.job_queue выполняется
- * дебаунс-перезапрос RPC get_active_runs() / get_run_status(). Это
- * проще и надёжнее, чем собирать state по payload-ам событий.
+ * дебаунс-перезапрос RPC get_recent_runs(limit). Подход идентичен
+ * useCurrentRun — данные берутся атомарным снимком из RPC, а не
+ * собираются из payload-ов.
  *
- * Если активных ранов нет — run=null, details=null, loading=false.
- * Если активных несколько — берётся первый (running сортируется по started_at DESC в RPC).
+ * Подписка на job_queue нужна потому, что steps_done/steps_failed/duration
+ * пересчитываются в get_recent_runs именно из job_queue — без неё
+ * агрегаты в строке активного запуска не обновлялись бы в реалтайме.
  */
-export function useCurrentRun(): State {
+export function useRecentRuns(limit: number = 10): State {
   const [state, setState] = useState<State>(INITIAL);
 
-  // debounce-таймер для пересчёта при всплеске событий
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // защита от race: игнорируем ответы от устаревших запросов
   const reqIdRef = useRef(0);
 
   useEffect(() => {
@@ -44,19 +42,9 @@ export function useCurrentRun(): State {
     const refresh = async () => {
       const myReqId = ++reqIdRef.current;
       try {
-        const runs = await getActiveRuns();
+        const runs = await getRecentRuns(limit);
         if (disposed || myReqId !== reqIdRef.current) return;
-
-        const run = runs[0] ?? null;
-        if (!run) {
-          setState({ run: null, details: null, loading: false, error: null });
-          return;
-        }
-
-        const details = await getRunStatus(run.run_id);
-        if (disposed || myReqId !== reqIdRef.current) return;
-
-        setState({ run, details, loading: false, error: null });
+        setState({ runs, loading: false, error: null });
       } catch (err) {
         if (disposed || myReqId !== reqIdRef.current) return;
         setState((prev) => ({
@@ -81,7 +69,7 @@ export function useCurrentRun(): State {
     // 2. Realtime-подписка
     const supabase = getSupabase();
     const channel = supabase
-      .channel(`current-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+      .channel(`recent-runs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
       .on(
         'postgres_changes',
         {
@@ -110,7 +98,7 @@ export function useCurrentRun(): State {
       }
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [limit]);
 
   return state;
 }
