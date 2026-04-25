@@ -14,6 +14,9 @@ import { usePlaybookSteps } from '@/hooks/usePlaybookSteps';
 import { useCurrentRun } from '@/hooks/useCurrentRun';
 import { useRecentRuns } from '@/hooks/useRecentRuns';
 import { useRunDetails } from '@/hooks/useRunDetails';
+import { useScheduler } from '@/hooks/useScheduler';
+import { TimerControl } from '@/components/TimerControl';
+import type { SchedulerRow } from '@/lib/rpc';
 
 type PlaybookCard = {
   name: PlaybookName;
@@ -68,6 +71,14 @@ export default function HomePage() {
   const activePlaybooks = new Set<PlaybookName>(
     activeRuns.map((r) => r.playbook_name),
   );
+
+  // Конфигурация автозапусков (claude_meta.scheduler_config) с Realtime-обновлением.
+  // Используется внутри карточки плейбука для отрисовки <TimerControl/>.
+  const { rows: schedulerRows } = useScheduler();
+  const schedulerByPlaybook: Partial<Record<PlaybookName, SchedulerRow>> = {};
+  schedulerRows.forEach((r) => {
+    schedulerByPlaybook[r.playbook_name] = r;
+  });
 
   // Если плейбук был confirmed, а его активный ран закончился —
   // сбрасываем карточку в idle.
@@ -157,6 +168,7 @@ export default function HomePage() {
             stepMode={stepMode[p.name]}
             expanded={expanded[p.name]}
             activePlaybooks={activePlaybooks}
+            schedulerRow={schedulerByPlaybook[p.name]}
             onTrigger={() => handleTrigger(p.name)}
             onToggleStepMode={() => toggleStepMode(p.name)}
             onToggleExpanded={() => toggleExpanded(p.name)}
@@ -190,6 +202,7 @@ type PlaybookCardViewProps = {
   stepMode: boolean;
   expanded: boolean;
   activePlaybooks: Set<PlaybookName>;
+  schedulerRow: SchedulerRow | undefined;
   onTrigger: () => void;
   onToggleStepMode: () => void;
   onToggleExpanded: () => void;
@@ -201,6 +214,7 @@ function PlaybookCardView({
   stepMode,
   expanded,
   activePlaybooks,
+  schedulerRow,
   onTrigger,
   onToggleStepMode,
   onToggleExpanded,
@@ -269,17 +283,25 @@ function PlaybookCardView({
 
   return (
     <div className={containerClass}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onTrigger}
-        className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
-      >
-        <div className="text-base font-medium">{card.label}</div>
-        <div className="font-mono text-xs text-neutral-400 min-h-[16px] mt-0.5">
-          {statusLine}
+      <div className="flex items-stretch gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onTrigger}
+            className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
+          >
+            <div className="text-base font-medium">{card.label}</div>
+            <div className="font-mono text-xs text-neutral-400 min-h-[16px] mt-0.5">
+              {statusLine}
+            </div>
+          </button>
         </div>
-      </button>
+
+        <div className="w-32 shrink-0">
+          <TimerControl playbook={card.name} row={schedulerRow} />
+        </div>
+      </div>
 
       <div className="flex items-center justify-between border-t border-neutral-800/70 pt-2">
         <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-neutral-400">

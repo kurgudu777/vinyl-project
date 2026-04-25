@@ -75,3 +75,34 @@ export async function triggerSingleStep(
   if (error) throw error;
   return data as SingleStepResult;
 }
+// ────────────────────────────────────────────────────────────────────
+// Scheduler (auto-trigger by interval grid)
+// ────────────────────────────────────────────────────────────────────
+
+export type SchedulerRow = {
+  playbook_name: PlaybookName;
+  enabled: boolean;
+  interval_hours: number;
+  last_run_at: string | null;
+  updated_at: string;
+};
+
+export async function getSchedulerConfig(): Promise<SchedulerRow[]> {
+  const { data, error } = await getSupabase().rpc('get_scheduler_config');
+  if (error) throw error;
+  return (data ?? []) as SchedulerRow[];
+}
+
+export async function setSchedulerConfig(
+  playbookName: PlaybookName,
+  enabled: boolean,
+  intervalHours: number,
+): Promise<SchedulerRow> {
+  const { data, error } = await getSupabase().rpc('set_scheduler_config', {
+    p_playbook_name: playbookName,
+    p_enabled: enabled,
+    p_interval_hours: intervalHours,
+  });
+  if (error) throw error;
+  return data as SchedulerRow;
+}
