@@ -51,7 +51,6 @@ export function TimerControl({ playbook, row }: Props) {
     <div className={`flex flex-col gap-1.5 rounded-md border px-2.5 py-2 text-[11px] ${borderClass}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-neutral-300">
-          <span aria-hidden>⏱</span>
           <span className="font-medium">Авто</span>
         </span>
         <button
@@ -116,7 +115,6 @@ export function TimerControl({ playbook, row }: Props) {
     <div className={`flex flex-col gap-1.5 rounded-md border px-2.5 py-2 text-[11px] ${borderClass}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-neutral-300">
-          <span aria-hidden>⏱</span>
           <span className="font-medium">Авто</span>
         </span>
         <button
