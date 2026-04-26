@@ -30,6 +30,49 @@ const PLAYBOOKS: PlaybookCard[] = [
   { name: 'sync_all', label: 'Всё целиком', description: '~12 шагов · ~5-15 мин' },
 ];
 
+// Иконки и цветовые тона плашки иконки для каждого плейбука.
+// Полка с пластинками — Остатки. Знак рубля — Цены. Для «Всё целиком» — обе иконки рядом.
+function PlaybookIcon({ name }: { name: PlaybookName }) {
+  if (name === 'sync_stocks' || name === 'sync_all') {
+    const shelf = (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <line x1="4" y1="4" x2="4" y2="24" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="24" y1="4" x2="24" y2="24" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="3" y1="24" x2="25" y2="24" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="3" y1="4" x2="25" y2="4" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="7" y1="8" x2="7" y2="23.2" stroke="#85B7EB" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="9.8" y1="8" x2="9.8" y2="23.2" stroke="#85B7EB" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="12.6" y1="8" x2="12.6" y2="23.2" stroke="#85B7EB" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="15.2" y1="8.37" x2="18.5" y2="23.2" stroke="#85B7EB" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    );
+    if (name === 'sync_stocks') return shelf;
+    // sync_all — полка + рубль рядом, каждая в своей плашке
+    return (
+      <>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
+          {shelf}
+        </div>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15">
+          <span className="text-[24px] font-bold leading-none text-emerald-400" aria-hidden="true">₽</span>
+        </div>
+      </>
+    );
+  }
+  // sync_prices — знак рубля
+  return (
+    <span className="text-[24px] font-bold leading-none text-emerald-400" aria-hidden="true">₽</span>
+  );
+}
+
+// Тон фона плашки иконки для одиночных иконок (sync_stocks, sync_prices).
+// Для sync_all иконки сами рендерят свои плашки внутри PlaybookIcon.
+const PLAYBOOK_ICON_BG: Record<PlaybookName, string | null> = {
+  sync_stocks: 'bg-blue-500/15',
+  sync_prices: 'bg-emerald-500/15',
+  sync_all: null,
+};
+
 const PLAYBOOK_LABEL: Record<PlaybookName, string> = PLAYBOOKS.reduce(
   (acc, p) => {
     acc[p.name] = p.label;
@@ -284,6 +327,18 @@ function PlaybookCardView({
   return (
     <div className={containerClass}>
       <div className="flex items-stretch gap-3">
+        {PLAYBOOK_ICON_BG[card.name] ? (
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${PLAYBOOK_ICON_BG[card.name]}`}
+            aria-hidden="true"
+          >
+            <PlaybookIcon name={card.name} />
+          </div>
+        ) : (
+          <div className="flex shrink-0 items-center gap-1.5" aria-hidden="true">
+            <PlaybookIcon name={card.name} />
+          </div>
+        )}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <button
             type="button"
