@@ -26,6 +26,9 @@ const INITIAL: State = {
   error: null,
 };
 
+/** Интервал polling-фоллбэка. Подстраховка на случай если Realtime тихо отвалился. */
+const POLL_INTERVAL_MS = 5000;
+
 /**
  * Подписка на активный playbook_run.
  *
@@ -33,6 +36,12 @@ const INITIAL: State = {
  * событие в claude_meta.playbook_run или claude_meta.job_queue выполняется
  * дебаунс-перезапрос RPC get_active_runs() / get_run_status(). Это
  * проще и надёжнее, чем собирать state по payload-ам событий.
+ *
+ * Защита от зависшего UI при слабом интернете:
+ * 1. Polling-фоллбэк раз в POLL_INTERVAL_MS — срабатывает если Realtime
+ *    тихо отвалился (WS жив для клиента, но события не доходят).
+ * 2. visibilitychange — при возврате вкладки в фокус немедленный refresh.
+ * 3. online — при восстановлении сети немедленный refresh.
  *
  * Если активных ранов нет — run=null, details=null, loading=false.
  * Если активных несколько — берётся первый (running сортируется по started_at DESC в RPC).
@@ -109,12 +118,37 @@ export function useCurrentRun(): State {
       )
       .subscribe();
 
+    // 3. Polling-фоллбэк: дёргаем refresh каждые POLL_INTERVAL_MS
+    // Поллим всегда (а не только при активном ране) — на случай если
+    // ран стартовал с другой вкладки/устройства и WS пропустил событие.
+    const pollInterval = setInterval(() => {
+      if (disposed) return;
+      refresh();
+    }, POLL_INTERVAL_MS);
+
+    // 4. Возврат вкладки в фокус — мгновенный refresh
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        scheduleRefresh();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // 5. Восстановление сети — мгновенный refresh
+    const onOnline = () => {
+      scheduleRefresh();
+    };
+    window.addEventListener('online', onOnline);
+
     return () => {
       disposed = true;
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
       }
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('online', onOnline);
       supabase.removeChannel(channel);
     };
   }, []);
