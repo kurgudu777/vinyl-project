@@ -49,12 +49,12 @@ function PlaybookIcon({ name }: { name: PlaybookName }) {
     if (name === 'sync_stocks') return shelf;
     // sync_all — две раздельные плашки рядом, каждая в своём цвете
     return (
-      <div className="flex shrink-0 items-center gap-1.5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 sm:h-11 sm:w-11">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15 sm:h-11 sm:w-11">
           {shelf}
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 sm:h-11 sm:w-11">
-          <span className="text-[22px] font-bold leading-none text-emerald-400" aria-hidden="true">₽</span>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 sm:h-11 sm:w-11">
+          <span className="text-[20px] font-bold leading-none text-emerald-400 sm:text-[22px]" aria-hidden="true">₽</span>
         </div>
       </div>
     );
@@ -326,11 +326,11 @@ function PlaybookCardView({
 
   return (
     <div className={containerClass}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex items-stretch gap-2 sm:gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           {PLAYBOOK_ICON_BG[card.name] ? (
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl ${PLAYBOOK_ICON_BG[card.name]}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl ${PLAYBOOK_ICON_BG[card.name]}`}
               aria-hidden="true"
             >
               <PlaybookIcon name={card.name} />
@@ -338,22 +338,22 @@ function PlaybookCardView({
           ) : (
             <PlaybookIcon name={card.name} />
           )}
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <button
               type="button"
               disabled={disabled}
               onClick={onTrigger}
               className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
             >
-              <div className="text-base font-medium">{card.label}</div>
-              <div className="font-mono text-xs text-neutral-400 min-h-[16px] mt-0.5">
+              <div className="text-sm font-medium sm:text-base">{card.label}</div>
+              <div className="font-mono text-[11px] text-neutral-400 min-h-[14px] mt-0.5 sm:text-xs sm:min-h-[16px]">
                 {statusLine}
               </div>
             </button>
           </div>
         </div>
 
-        <div className="w-full shrink-0 md:w-32">
+        <div className="w-24 shrink-0 sm:w-32">
           <TimerControl playbook={card.name} row={schedulerRow} />
         </div>
       </div>
