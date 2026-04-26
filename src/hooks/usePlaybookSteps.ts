@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getPlaybookSteps } from '@/lib/rpc';
+import { formatError } from '@/lib/formatError';
 import type { PlaybookName, PlaybookStep } from '@/lib/types';
 
 type State = {
@@ -42,7 +43,7 @@ export function usePlaybookSteps(name: PlaybookName, enabled: boolean) {
         setState({
           steps: [],
           loading: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: formatError(err),
         });
       });
     // cleanup намеренно отсутствует — мы не хотим отменять уже выпущенный запрос

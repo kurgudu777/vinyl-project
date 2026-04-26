@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getPlaybookSteps } from '@/lib/rpc';
+import { formatError } from '@/lib/formatError';
 import type { PlaybookName } from '@/lib/types';
 
 type Counts = Partial<Record<PlaybookName, number>>;
@@ -41,7 +42,7 @@ export function usePlaybookStepCounts(): State {
         setState({
           counts: {},
           loading: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: formatError(err),
         });
       });
 

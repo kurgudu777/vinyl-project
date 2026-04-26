@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getRecentRuns } from '@/lib/rpc';
 import { getSupabase } from '@/lib/supabase';
+import { formatError } from '@/lib/formatError';
 import type { RecentRun } from '@/lib/types';
 
 type State = {
@@ -50,7 +51,7 @@ export function useRecentRuns(limit: number = 10): State {
         setState((prev) => ({
           ...prev,
           loading: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: formatError(err),
         }));
       }
     };

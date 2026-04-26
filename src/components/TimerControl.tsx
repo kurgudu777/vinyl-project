@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { setSchedulerConfig, type SchedulerRow } from '@/lib/rpc';
+import { formatError } from '@/lib/formatError';
 import type { PlaybookName } from '@/lib/types';
 
 const ALLOWED_INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24] as const;
@@ -26,7 +27,7 @@ export function TimerControl({ playbook, row }: Props) {
       await setSchedulerConfig(playbook, nextEnabled, nextInterval);
     } catch (err) {
       console.error('setSchedulerConfig failed', err);
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatError(err));
     } finally {
       setBusy(false);
     }

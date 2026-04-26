@@ -17,6 +17,7 @@ import { useRecentRuns } from '@/hooks/useRecentRuns';
 import { useRunDetails } from '@/hooks/useRunDetails';
 import { useScheduler } from '@/hooks/useScheduler';
 import { TimerControl } from '@/components/TimerControl';
+import { formatError } from '@/lib/formatError';
 import type { SchedulerRow } from '@/lib/rpc';
 
 type PlaybookCard = {
@@ -179,7 +180,7 @@ export default function HomePage() {
       console.error('trigger failed', name, err);
       setPhase(name, {
         phase: 'error',
-        message: err instanceof Error ? err.message : String(err),
+        message: formatError(err),
       });
     }
   };
@@ -472,7 +473,7 @@ function StepList({ name, parentPlaybookActive }: StepListProps) {
       }
     } catch (err) {
       console.error('single step failed', name, stepOrder, err);
-      setStepError(err instanceof Error ? err.message : String(err));
+      setStepError(formatError(err));
     } finally {
       setPendingStep(null);
     }
@@ -957,7 +958,7 @@ function StepDetailRow({ step }: { step: RunStep }) {
         </div>
         {step.error_message && (
           <div className="mt-0.5 font-mono text-[10px] text-red-400 whitespace-pre-wrap break-words">
-            {step.error_message}
+            {formatError(step.error_message)}
           </div>
         )}
         {step.attempt > 1 && (

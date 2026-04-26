@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getActiveRuns, getRunStatus } from '@/lib/rpc';
 import { getSupabase } from '@/lib/supabase';
+import { formatError } from '@/lib/formatError';
 import type { ActiveRun, RunDetails } from '@/lib/types';
 
 type State = {
@@ -78,7 +79,7 @@ export function useCurrentRun(): State {
         setState((prev) => ({
           ...prev,
           loading: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: formatError(err),
         }));
       }
     };
