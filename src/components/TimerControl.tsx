@@ -81,7 +81,7 @@ export function TimerControl({ playbook, row }: Props) {
           onChange={onChangeInterval}
           disabled={busy}
           title={statusTitle}
-          className="min-w-0 max-w-full rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
+          className="min-w-0 max-w-full rounded border border-neutral-700 bg-neutral-900 pl-1.5 pr-5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
         >
           {ALLOWED_INTERVALS.map((h) => (
             <option key={h} value={h}>{h}ч</option>

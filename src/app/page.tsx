@@ -195,9 +195,9 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
-      <header className="mb-2 sm:mb-5">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+    <main className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-6">
+      <header className="mb-1.5 sm:mb-5">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
           Синхронизация
         </h1>
       </header>
