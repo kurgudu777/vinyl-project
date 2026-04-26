@@ -42,10 +42,13 @@ export function TimerControl({ playbook, row }: Props) {
   }
 
   const nextSlot = computeNextSlot(interval, enabled);
+  const statusTitle = enabled
+    ? `след: ${nextSlot} · посл: ${formatLastRun(lastRunAt)}`
+    : 'выключено';
 
   return (
     <div
-      className="flex flex-col gap-1.5 rounded-md border border-neutral-800 px-2.5 py-2 text-[11px]"
+      className="flex flex-col gap-1 rounded-md border border-neutral-800 px-2.5 py-1.5 text-[11px]"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between gap-2">
@@ -55,6 +58,7 @@ export function TimerControl({ playbook, row }: Props) {
           onClick={onToggle}
           disabled={busy}
           aria-pressed={enabled}
+          title={statusTitle}
           className={
             'relative inline-flex h-4 w-8 shrink-0 cursor-pointer items-center rounded-full transition ' +
             (enabled ? 'bg-emerald-600' : 'bg-neutral-700') +
@@ -76,6 +80,7 @@ export function TimerControl({ playbook, row }: Props) {
           value={interval}
           onChange={onChangeInterval}
           disabled={busy}
+          title={statusTitle}
           className="rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
         >
           {ALLOWED_INTERVALS.map((h) => (
@@ -84,7 +89,7 @@ export function TimerControl({ playbook, row }: Props) {
         </select>
       </label>
 
-      <div className="text-[10px] leading-tight text-neutral-500">
+      <div className="hidden text-[10px] leading-tight text-neutral-500 md:block">
         {enabled ? (
           <>
             <div>след: {nextSlot}</div>
