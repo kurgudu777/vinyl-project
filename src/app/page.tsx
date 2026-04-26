@@ -937,7 +937,7 @@ function StepDetailRow({ step }: { step: RunStep }) {
           }
         >
           <span className="flex-1 truncate">{step.label}</span>
-          {dur && (
+          {dur && dur !== '<1с' && (
             <span className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-500">
               {dur}
             </span>
