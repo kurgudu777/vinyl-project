@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -14,8 +14,28 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Синхронизация — vinyl-project",
+  title: "Kirgudu",
   description: "Запуск плейбуков синхронизации маркетплейсов",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Kirgudu",
+  appleWebApp: {
+    capable: true,
+    title: "Kirgudu",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0D263C",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
