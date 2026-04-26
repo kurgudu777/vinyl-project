@@ -43,12 +43,8 @@ export function TimerControl({ playbook, row }: Props) {
 
   const nextSlot = computeNextSlot(interval, enabled);
 
-  const borderClass = enabled
-    ? 'border-emerald-800/60 bg-emerald-950/20'
-    : 'border-neutral-800 bg-neutral-950/40';
-
   return (
-    <div className={`flex flex-col gap-1.5 rounded-md border px-2.5 py-2 text-[11px] ${borderClass}`}>
+    <div className="flex flex-col gap-1.5 rounded-md border border-neutral-800 bg-neutral-950/40 px-2.5 py-2 text-[11px]">
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium text-neutral-300">Авто</span>
         <button
