@@ -196,7 +196,7 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
-      <header className="mb-3 sm:mb-5">
+      <header className="mb-2 sm:mb-5">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           Синхронизация
         </h1>
@@ -219,7 +219,7 @@ export default function HomePage() {
         ))}
       </section>
 
-      <section className="mt-6">
+      <section className="mt-3 sm:mt-6">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Текущий запуск
@@ -229,7 +229,7 @@ export default function HomePage() {
         <CurrentRunCard />
       </section>
 
-      <section className="mt-6">
+      <section className="mt-3 sm:mt-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
           История
         </h2>
@@ -326,8 +326,8 @@ function PlaybookCardView({
 
   return (
     <div className={containerClass}>
-      <div className="flex items-stretch gap-2 sm:gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
           {PLAYBOOK_ICON_BG[card.name] ? (
             <div
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl ${PLAYBOOK_ICON_BG[card.name]}`}
@@ -345,8 +345,8 @@ function PlaybookCardView({
               onClick={onTrigger}
               className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
             >
-              <div className="text-sm font-medium sm:text-base">{card.label}</div>
-              <div className="font-mono text-[11px] text-neutral-400 min-h-[14px] mt-0.5 sm:text-xs sm:min-h-[16px]">
+              <div className="text-[13px] font-medium sm:text-base">{card.label}</div>
+              <div className="font-mono text-[10px] text-neutral-400 min-h-[14px] mt-0.5 sm:text-xs sm:min-h-[16px]">
                 {statusLine}
               </div>
             </button>
@@ -359,7 +359,7 @@ function PlaybookCardView({
       </div>
 
       <div className="flex items-center justify-between border-t border-neutral-800/70 pt-2">
-        <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-neutral-400">
+        <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-neutral-400 sm:text-xs">
           <input
             type="checkbox"
             checked={stepMode}

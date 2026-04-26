@@ -48,7 +48,7 @@ export function TimerControl({ playbook, row }: Props) {
 
   return (
     <div
-      className="flex flex-col gap-1 rounded-md border border-neutral-800 px-2.5 py-1.5 text-[11px]"
+      className="flex flex-col gap-1 rounded-md border border-neutral-800 px-2.5 py-1.5 text-[10px] sm:text-[11px]"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between gap-2">
@@ -74,14 +74,14 @@ export function TimerControl({ playbook, row }: Props) {
         </button>
       </div>
 
-      <label className="flex items-center justify-between gap-2 text-neutral-400">
+      <label className="flex min-w-0 items-center justify-between gap-2 text-neutral-400">
         <span>период</span>
         <select
           value={interval}
           onChange={onChangeInterval}
           disabled={busy}
           title={statusTitle}
-          className="rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
+          className="min-w-0 max-w-full rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
         >
           {ALLOWED_INTERVALS.map((h) => (
             <option key={h} value={h}>{h}ч</option>
