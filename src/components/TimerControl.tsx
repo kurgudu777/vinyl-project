@@ -50,73 +50,7 @@ export function TimerControl({ playbook, row }: Props) {
   return (
     <div className={`flex flex-col gap-1.5 rounded-md border px-2.5 py-2 text-[11px] ${borderClass}`}>
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-neutral-300">
-          <span className="font-medium">Авто</span>
-        </span>
-        <button
-          type="button"
-          onClick={onToggle}
-          disabled={busy}
-          aria-pressed={enabled}
-          className={
-            'relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition ' +
-            (enabled ? 'b
-mkdir -p src/components && cat > src/components/TimerControl.tsx << 'EOF'
-'use client';
-
-import { useState } from 'react';
-import { setSchedulerConfig, type SchedulerRow } from '@/lib/rpc';
-import type { PlaybookName } from '@/lib/types';
-
-const ALLOWED_INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24] as const;
-
-type Props = {
-  playbook: PlaybookName;
-  row: SchedulerRow | undefined;
-};
-
-export function TimerControl({ playbook, row }: Props) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const enabled = row?.enabled ?? false;
-  const interval = row?.interval_hours ?? 6;
-  const lastRunAt = row?.last_run_at ?? null;
-
-  async function update(nextEnabled: boolean, nextInterval: number) {
-    setBusy(true);
-    setError(null);
-    try {
-      await setSchedulerConfig(playbook, nextEnabled, nextInterval);
-    } catch (err) {
-      console.error('setSchedulerConfig failed', err);
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function onToggle() {
-    update(!enabled, interval);
-  }
-
-  function onChangeInterval(e: React.ChangeEvent<HTMLSelectElement>) {
-    const next = parseInt(e.target.value, 10);
-    update(enabled, next);
-  }
-
-  const nextSlot = computeNextSlot(interval, enabled);
-
-  const borderClass = enabled
-    ? 'border-emerald-800/60 bg-emerald-950/20'
-    : 'border-neutral-800 bg-neutral-950/40';
-
-  return (
-    <div className={`flex flex-col gap-1.5 rounded-md border px-2.5 py-2 text-[11px] ${borderClass}`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-neutral-300">
-          <span className="font-medium">Авто</span>
-        </span>
+        <span className="font-medium text-neutral-300">Авто</span>
         <button
           type="button"
           onClick={onToggle}
@@ -170,14 +104,13 @@ export function TimerControl({ playbook, row }: Props) {
 }
 
 function computeNextSlot(intervalHours: number, enabled: boolean): string {
-  if (!enabled) return '—';
+  if (!enabled) return '-';
   const now = new Date();
   const utcHour = now.getUTCHours();
-  const utcMin = now.getUTCMinutes();
   const mskHour = (utcHour + 3) % 24;
 
-  let nextMskHour = mskHour;
-  if (mskHour % intervalHours === 0 && utcMin >= 0) {
+  let nextMskHour: number;
+  if (mskHour % intervalHours === 0) {
     nextMskHour = mskHour + intervalHours;
   } else {
     const remainder = mskHour % intervalHours;
