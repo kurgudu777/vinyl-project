@@ -35,7 +35,7 @@ const PLAYBOOKS: PlaybookCard[] = [
 function PlaybookIcon({ name }: { name: PlaybookName }) {
   if (name === 'sync_stocks' || name === 'sync_all') {
     const shelf = (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true">
         <line x1="4" y1="4" x2="4" y2="24" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
         <line x1="24" y1="4" x2="24" y2="24" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
         <line x1="3" y1="24" x2="25" y2="24" stroke="#85B7EB" strokeWidth="1.8" strokeLinecap="round" />
@@ -47,26 +47,26 @@ function PlaybookIcon({ name }: { name: PlaybookName }) {
       </svg>
     );
     if (name === 'sync_stocks') return shelf;
-    // sync_all — полка + рубль рядом, каждая в своей плашке
+    // sync_all — две раздельные плашки рядом, каждая в своём цвете
     return (
-      <>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 sm:h-11 sm:w-11">
           {shelf}
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15">
-          <span className="text-[24px] font-bold leading-none text-emerald-400" aria-hidden="true">₽</span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 sm:h-11 sm:w-11">
+          <span className="text-[22px] font-bold leading-none text-emerald-400" aria-hidden="true">₽</span>
         </div>
-      </>
+      </div>
     );
   }
   // sync_prices — знак рубля
   return (
-    <span className="text-[24px] font-bold leading-none text-emerald-400" aria-hidden="true">₽</span>
+    <span className="text-[22px] font-bold leading-none text-emerald-400 sm:text-[24px]" aria-hidden="true">₽</span>
   );
 }
 
-// Тон фона плашки иконки для одиночных иконок (sync_stocks, sync_prices).
-// Для sync_all иконки сами рендерят свои плашки внутри PlaybookIcon.
+// Тон фона плашки иконки для одиночных иконок.
+// Для sync_all плашки рендерятся внутри PlaybookIcon (две раздельные).
 const PLAYBOOK_ICON_BG: Record<PlaybookName, string | null> = {
   sync_stocks: 'bg-blue-500/15',
   sync_prices: 'bg-emerald-500/15',
@@ -195,14 +195,14 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-6">
-      <header className="mb-5">
+    <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
+      <header className="mb-3 sm:mb-5">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           Синхронизация
         </h1>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-3 sm:gap-4 sm:grid-cols-3">
         {PLAYBOOKS.map((p) => (
           <PlaybookCardView
             key={p.name}
@@ -293,7 +293,7 @@ function PlaybookCardView({
               : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 hover:bg-[#1a1a1a]';
 
   const cursor = busy ? 'cursor-wait' : disabled ? 'cursor-not-allowed' : '';
-  const containerClass = `group flex flex-col gap-2 rounded-lg border p-4 transition duration-150 ${borderBg} ${cursor}`;
+  const containerClass = `group flex flex-col gap-2 rounded-lg border p-3 sm:p-4 transition duration-150 ${borderBg} ${cursor}`;
 
   // Подпись под заголовком — меняется в зависимости от фазы, чтобы была явная
   // обратная связь о том, что запуск реально произошёл.
@@ -326,34 +326,34 @@ function PlaybookCardView({
 
   return (
     <div className={containerClass}>
-      <div className="flex items-stretch gap-3">
-        {PLAYBOOK_ICON_BG[card.name] ? (
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${PLAYBOOK_ICON_BG[card.name]}`}
-            aria-hidden="true"
-          >
-            <PlaybookIcon name={card.name} />
-          </div>
-        ) : (
-          <div className="flex shrink-0 items-center gap-1.5" aria-hidden="true">
-            <PlaybookIcon name={card.name} />
-          </div>
-        )}
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={onTrigger}
-            className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
-          >
-            <div className="text-base font-medium">{card.label}</div>
-            <div className="font-mono text-xs text-neutral-400 min-h-[16px] mt-0.5">
-              {statusLine}
+      <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {PLAYBOOK_ICON_BG[card.name] ? (
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl ${PLAYBOOK_ICON_BG[card.name]}`}
+              aria-hidden="true"
+            >
+              <PlaybookIcon name={card.name} />
             </div>
-          </button>
+          ) : (
+            <PlaybookIcon name={card.name} />
+          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={onTrigger}
+              className="-m-1 rounded-md p-1 text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
+            >
+              <div className="text-base font-medium">{card.label}</div>
+              <div className="font-mono text-xs text-neutral-400 min-h-[16px] mt-0.5">
+                {statusLine}
+              </div>
+            </button>
+          </div>
         </div>
 
-        <div className="w-32 shrink-0">
+        <div className="w-full shrink-0 md:w-32">
           <TimerControl playbook={card.name} row={schedulerRow} />
         </div>
       </div>
