@@ -27,7 +27,7 @@ const INITIAL: State = {
 };
 
 /** Интервал polling-фоллбэка. Подстраховка на случай если Realtime тихо отвалился. */
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 10000;
 
 /**
  * Подписка на активный playbook_run.
