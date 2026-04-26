@@ -565,7 +565,7 @@ function CurrentRunCard() {
           <div className="text-base font-medium">{label}</div>
           <div className="mt-1 text-xs text-neutral-500">
             запущен <RelativeTime iso={run.started_at} />
-            {run.triggered_by ? ` · ${run.triggered_by}` : null}
+            {run.triggered_by ? ` · ${formatTriggeredBy(run.triggered_by)}` : null}
           </div>
         </div>
         <StatusBadge status={run.status} />
@@ -787,7 +787,7 @@ function HistoryRow({ run, expanded, onToggle }: HistoryRowProps) {
           <div className="mt-0.5 font-mono text-[11px] text-neutral-500">
             {formatAbsoluteTime(run.started_at)}
             {duration ? ` · ${duration}` : ''}
-            {run.triggered_by ? ` · ${run.triggered_by}` : ''}
+            {run.triggered_by ? ` · ${formatTriggeredBy(run.triggered_by)}` : ''}
             {isActive ? ' · показывается в «Текущий запуск»' : ''}
           </div>
         </div>
@@ -1017,6 +1017,19 @@ function formatRelative(iso: string, now: number): string {
  * Абсолютное время. Если сегодня — HH:MM, если вчера — "вчера HH:MM",
  * если в этом году — "DD MMM HH:MM", иначе — "DD.MM.YYYY HH:MM".
  */
+function formatTriggeredBy(value: string | null): string | null {
+  if (!value) return null;
+  switch (value) {
+    case 'web_ui':
+    case 'manual_step':
+      return 'пользователь';
+    case 'scheduler':
+      return 'авто';
+    default:
+      return value;
+  }
+}
+
 function formatAbsoluteTime(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
