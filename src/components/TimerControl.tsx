@@ -48,7 +48,7 @@ export function TimerControl({ playbook, row }: Props) {
 
   return (
     <div
-      className="flex flex-col justify-between rounded-md border border-neutral-800 px-2.5 py-1.5 text-[10px] sm:text-[11px]"
+      className="flex flex-col gap-1 rounded-md border border-neutral-800 px-2.5 py-1.5 text-[10px] sm:text-[11px]"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between gap-2">
