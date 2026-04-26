@@ -74,20 +74,18 @@ export function TimerControl({ playbook, row }: Props) {
         </button>
       </div>
 
-      <label className="flex min-w-0 items-center justify-between gap-2 text-neutral-400">
-        <span>период</span>
-        <select
-          value={interval}
-          onChange={onChangeInterval}
-          disabled={busy}
-          title={statusTitle}
-          className="min-w-0 max-w-full rounded border border-neutral-700 bg-neutral-900 pl-1.5 pr-5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
-        >
-          {ALLOWED_INTERVALS.map((h) => (
-            <option key={h} value={h}>{h}ч</option>
-          ))}
-        </select>
-      </label>
+      <select
+        value={interval}
+        onChange={onChangeInterval}
+        disabled={busy}
+        title={statusTitle}
+        aria-label="период автозапуска"
+        className="w-full min-w-0 rounded border border-neutral-700 bg-neutral-900 pl-1.5 pr-5 py-0.5 text-[11px] text-neutral-200 outline-none hover:border-neutral-600 focus:border-neutral-500 disabled:opacity-50"
+      >
+        {ALLOWED_INTERVALS.map((h) => (
+          <option key={h} value={h}>{h}ч</option>
+        ))}
+      </select>
 
       <div className="hidden text-[10px] leading-tight text-neutral-500 md:block">
         {enabled ? (

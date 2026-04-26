@@ -614,8 +614,8 @@ function CurrentRunCard() {
     null;
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-      <div className="mb-4 flex items-baseline justify-between gap-3">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3 sm:p-5">
+      <div className="mb-2 flex items-baseline justify-between gap-2 sm:mb-4 sm:gap-3">
         <div className="min-w-0">
           <div className="text-base font-medium">{label}</div>
           <div className="mt-1 text-xs text-neutral-500">
@@ -633,7 +633,7 @@ function CurrentRunCard() {
         <span className="tabular-nums">{percent}%</span>
       </div>
 
-      <div className="mb-4 h-1 overflow-hidden rounded-full bg-neutral-800">
+      <div className="mb-2 h-1 overflow-hidden rounded-full bg-neutral-800 sm:mb-4">
         <div
           className="h-full bg-emerald-500 transition-all duration-500"
           style={{ width: `${percent}%` }}
@@ -643,13 +643,13 @@ function CurrentRunCard() {
       {currentStep ? (
         <CurrentStepRow step={currentStep} />
       ) : (
-        <div className="rounded-md bg-neutral-950/60 px-3 py-2.5 text-xs text-neutral-500">
+        <div className="rounded-md bg-neutral-950/60 px-3 py-1.5 text-xs text-neutral-500 sm:py-2.5">
           завершается…
         </div>
       )}
 
       {details && details.steps.length > 0 && (
-        <div className="mt-3 border-t border-neutral-800 pt-3">
+        <div className="mt-2 border-t border-neutral-800 pt-2 sm:mt-3 sm:pt-3">
           <button
             type="button"
             onClick={() => setStepsOpen((v) => !v)}
@@ -676,7 +676,7 @@ function CurrentRunCard() {
           </button>
 
           {stepsOpen && (
-            <ol className="mt-2 flex flex-col gap-0 rounded-md bg-neutral-950/40 px-2 py-1.5">
+            <ol className="mt-1 flex flex-col gap-0 rounded-md bg-neutral-950/40 px-2 py-1.5 sm:mt-2">
               {details.steps.map((s) => (
                 <StepDetailRow key={s.job_id} step={s} />
               ))}
@@ -691,7 +691,7 @@ function CurrentRunCard() {
 function CurrentStepRow({ step }: { step: RunStep }) {
   const elapsed = useElapsed(step.started_at);
   return (
-    <div className="flex items-center gap-3 rounded-md bg-neutral-950/60 px-3 py-2.5">
+    <div className="flex items-center gap-2 rounded-md bg-neutral-950/60 px-3 py-1.5 sm:gap-3 sm:py-2.5">
       <span className="relative inline-flex h-2 w-2 shrink-0">
         <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/70" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
