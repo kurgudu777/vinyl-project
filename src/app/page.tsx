@@ -11,6 +11,7 @@ import type {
   SingleStepResult,
 } from '@/lib/types';
 import { usePlaybookSteps } from '@/hooks/usePlaybookSteps';
+import { usePlaybookStepCounts } from '@/hooks/usePlaybookStepCounts';
 import { useCurrentRun } from '@/hooks/useCurrentRun';
 import { useRecentRuns } from '@/hooks/useRecentRuns';
 import { useRunDetails } from '@/hooks/useRunDetails';
@@ -21,13 +22,13 @@ import type { SchedulerRow } from '@/lib/rpc';
 type PlaybookCard = {
   name: PlaybookName;
   label: string;
-  description: string;
+  estimatedTime: string;
 };
 
 const PLAYBOOKS: PlaybookCard[] = [
-  { name: 'sync_stocks', label: 'Остатки', description: '8 шагов · ~3 мин' },
-  { name: 'sync_prices', label: 'Цены', description: '4 шага · ~2-10 мин' },
-  { name: 'sync_all', label: 'Всё целиком', description: '12 шагов · ~5-15 мин' },
+  { name: 'sync_stocks', label: 'Остатки', estimatedTime: '~3-4 мин' },
+  { name: 'sync_prices', label: 'Цены', estimatedTime: '~1-3 мин' },
+  { name: 'sync_all', label: 'Всё целиком', estimatedTime: '~4-6 мин' },
 ];
 
 // Иконки и цветовые тона плашки иконки для каждого плейбука.
@@ -123,6 +124,10 @@ export default function HomePage() {
     schedulerByPlaybook[r.playbook_name] = r;
   });
 
+  // Динамические счётчики шагов из БД (claude_meta.playbook_step).
+  // Один Promise.all из 3 RPC при первом mount; передаём в карточки prop'ом.
+  const { counts: stepCounts } = usePlaybookStepCounts();
+
   // Если плейбук был confirmed, а его активный ран закончился —
   // сбрасываем карточку в idle.
   useEffect(() => {
@@ -212,6 +217,7 @@ export default function HomePage() {
             expanded={expanded[p.name]}
             activePlaybooks={activePlaybooks}
             schedulerRow={schedulerByPlaybook[p.name]}
+            stepsCount={stepCounts[p.name]}
             onTrigger={() => handleTrigger(p.name)}
             onToggleStepMode={() => toggleStepMode(p.name)}
             onToggleExpanded={() => toggleExpanded(p.name)}
@@ -246,6 +252,7 @@ type PlaybookCardViewProps = {
   expanded: boolean;
   activePlaybooks: Set<PlaybookName>;
   schedulerRow: SchedulerRow | undefined;
+  stepsCount: number | undefined;
   onTrigger: () => void;
   onToggleStepMode: () => void;
   onToggleExpanded: () => void;
@@ -258,6 +265,7 @@ function PlaybookCardView({
   expanded,
   activePlaybooks,
   schedulerRow,
+  stepsCount,
   onTrigger,
   onToggleStepMode,
   onToggleExpanded,
@@ -321,7 +329,11 @@ function PlaybookCardView({
       <span className="text-red-300">✗ {triggerState.message}</span>
     );
   } else {
-    statusLine = <span>{card.description}</span>;
+    const stepsLine =
+      stepsCount != null && stepsCount > 0
+        ? `${stepsCount} ${plural(stepsCount, 'шаг', 'шага', 'шагов')} · ${card.estimatedTime}`
+        : card.estimatedTime;
+    statusLine = <span>{stepsLine}</span>;
   }
 
   return (
@@ -1170,6 +1182,15 @@ function formatStepDuration(step: RunStep): string | null {
     return formatDurationSec(sec);
   }
   return null;
+}
+
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
 }
 
 function formatDurationSec(sec: number): string {
