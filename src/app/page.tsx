@@ -27,7 +27,7 @@ type PlaybookCard = {
 const PLAYBOOKS: PlaybookCard[] = [
   { name: 'sync_stocks', label: 'Остатки', description: '8 шагов · ~3 мин' },
   { name: 'sync_prices', label: 'Цены', description: '4 шага · ~2-10 мин' },
-  { name: 'sync_all', label: 'Всё целиком', description: '~12 шагов · ~5-15 мин' },
+  { name: 'sync_all', label: 'Всё целиком', description: '12 шагов · ~5-15 мин' },
 ];
 
 // Иконки и цветовые тона плашки иконки для каждого плейбука.
@@ -326,7 +326,7 @@ function PlaybookCardView({
 
   return (
     <div className={containerClass}>
-      <div className="flex items-center gap-1.5 sm:gap-3">
+      <div className="flex items-start gap-1.5 sm:gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
           {PLAYBOOK_ICON_BG[card.name] ? (
             <div
