@@ -44,7 +44,10 @@ export function TimerControl({ playbook, row }: Props) {
   const nextSlot = computeNextSlot(interval, enabled);
 
   return (
-    <div className="flex flex-col gap-1.5 px-2.5 py-2 text-[11px]">
+    <div
+      className="flex flex-col gap-1.5 rounded-md border border-neutral-800 px-2.5 py-2 text-[11px]"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium text-neutral-300">Авто</span>
         <button
@@ -53,7 +56,7 @@ export function TimerControl({ playbook, row }: Props) {
           disabled={busy}
           aria-pressed={enabled}
           className={
-            'relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition ' +
+            'relative inline-flex h-4 w-8 shrink-0 cursor-pointer items-center rounded-full transition ' +
             (enabled ? 'bg-emerald-600' : 'bg-neutral-700') +
             (busy ? ' opacity-50' : '')
           }
@@ -61,7 +64,7 @@ export function TimerControl({ playbook, row }: Props) {
           <span
             className={
               'inline-block h-3 w-3 transform rounded-full bg-white transition ' +
-              (enabled ? 'translate-x-3.5' : 'translate-x-0.5')
+              (enabled ? 'translate-x-[18px]' : 'translate-x-0.5')
             }
           />
         </button>
