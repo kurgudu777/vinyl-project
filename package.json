@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@serwist/next": "^9.5.7",
     "@sparticuz/chromium-min": "123.0.1",
