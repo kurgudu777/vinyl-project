@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import puppeteer from 'puppeteer-core';
 
 export const runtime = 'nodejs';
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: viewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(process.env.CHROMIUM_URL),
       headless: true,
     });
 
