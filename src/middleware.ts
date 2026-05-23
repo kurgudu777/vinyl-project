@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(req: NextRequest) {
+  // /api/screenshot имеет собственную авторизацию через токен — пропускаем мимо basic-auth
+  if (req.nextUrl.pathname.startsWith('/api/screenshot')) {
+    return NextResponse.next();
+  }
+
   const user = process.env.BASIC_AUTH_USER?.trim();
   const pass = process.env.BASIC_AUTH_PASS?.trim();
 
