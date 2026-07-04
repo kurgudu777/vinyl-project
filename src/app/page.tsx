@@ -17,6 +17,7 @@ import { useRecentRuns } from '@/hooks/useRecentRuns';
 import { useRunDetails } from '@/hooks/useRunDetails';
 import { useScheduler } from '@/hooks/useScheduler';
 import { TimerControl } from '@/components/TimerControl';
+import { AutoarchiveReturnButton } from '@/components/AutoarchiveReturnButton';
 import { formatError } from '@/lib/formatError';
 import type { SchedulerRow } from '@/lib/rpc';
 
@@ -224,6 +225,15 @@ export default function HomePage() {
             onToggleExpanded={() => toggleExpanded(p.name)}
           />
         ))}
+      </section>
+
+      <section className="mt-3 border-t border-neutral-800/70 pt-3 sm:mt-6 sm:pt-6">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          Разовые действия
+        </h2>
+        <div className="sm:max-w-sm">
+          <AutoarchiveReturnButton />
+        </div>
       </section>
 
       <section className="mt-3 sm:mt-6">
