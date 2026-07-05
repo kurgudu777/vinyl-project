@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 type Phase = 'idle' | 'triggering' | 'confirmed' | 'error';
 
 // Разовое ручное действие вне playbook-модели: свой fire-and-forget роут,
-// локальное phase-состояние (как у карточек плейбуков в page.tsx), но без
-// прогресс-бара, activeRuns и run-tracking. Итог WF уходит алертом в Telegram.
+// локальное phase-состояние. Компактная иконочная кнопка в шапке (без текста);
+// обратная связь — цветом/иконкой + tooltip. Итог WF уходит алертом в Telegram.
 export function AutoarchiveReturnButton() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [message, setMessage] = useState<string | null>(null);
@@ -35,72 +35,54 @@ export function AutoarchiveReturnButton() {
 
   const busy = phase === 'triggering';
 
-  const borderBg =
+  const tone =
     phase === 'triggering'
-      ? 'border-blue-700 bg-blue-950/40'
+      ? 'border-blue-700 bg-blue-950/40 text-blue-300'
       : phase === 'confirmed'
-        ? 'border-emerald-700 bg-emerald-950/30'
+        ? 'border-emerald-700 bg-emerald-950/40 text-emerald-300'
         : phase === 'error'
-          ? 'border-red-800 bg-red-950/30'
-          : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 hover:bg-[#1a1a1a]';
+          ? 'border-red-800 bg-red-950/40 text-red-300'
+          : 'border-neutral-800 bg-neutral-900 text-amber-400 hover:border-neutral-700 hover:bg-[#1a1a1a]';
 
-  let statusLine: ReactNode;
-  if (phase === 'triggering') {
-    statusLine = (
-      <span className="inline-flex items-center gap-1.5 text-blue-300">
-        <Spinner />
-        Запускаем…
-      </span>
-    );
-  } else if (phase === 'confirmed') {
-    statusLine = <span className="text-emerald-300">✓ Запущено</span>;
-  } else if (phase === 'error') {
-    statusLine = <span className="text-red-300">✗ {message}</span>;
-  } else {
-    statusLine = <span>~3 мин · вне плейбуков</span>;
-  }
-
-  const cursor = busy ? 'cursor-wait' : '';
+  const title =
+    phase === 'error'
+      ? `Разархивация Ozon — ошибка: ${message}`
+      : phase === 'confirmed'
+        ? 'Разархивация Ozon — запущено (~3 мин, итог в Telegram)'
+        : phase === 'triggering'
+          ? 'Разархивация Ozon — запускаем…'
+          : 'Разархивация Ozon — восстановить авто-архивные лоты (разовое, вне плейбуков, ~3 мин, итог в Telegram)';
 
   return (
-    <div
-      className={`flex flex-col gap-2 rounded-lg border p-3 transition duration-150 sm:p-4 ${borderBg} ${cursor}`}
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={busy}
+      aria-label="Разархивация Ozon"
+      title={title}
+      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-wait sm:h-10 sm:w-10 ${tone} ${busy ? 'cursor-wait' : ''}`}
     >
-      <button
-        type="button"
-        disabled={busy}
-        onClick={handleClick}
-        className="flex items-center gap-1.5 rounded-md text-left transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-wait sm:gap-3"
-      >
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 sm:h-11 sm:w-11 sm:rounded-xl"
-          aria-hidden="true"
-        >
-          <ArchiveRestoreIcon />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[13px] font-medium sm:text-base">Разархивация Ozon</span>
-          <span className="min-h-[14px] font-mono text-[10px] text-neutral-400 sm:min-h-[16px] sm:text-xs">
-            {statusLine}
-          </span>
-        </span>
-      </button>
-      <p className="border-t border-neutral-800/70 pt-2 text-[11px] leading-snug text-neutral-500 sm:text-xs">
-        Разовое ручное действие, вне плейбуков. Восстанавливает лоты Ozon,
-        залипшие в авто-архиве. Выполняется ~3 мин, итог — алертом в Telegram.
-      </p>
-    </div>
+      {busy ? (
+        <Spinner />
+      ) : phase === 'confirmed' ? (
+        <CheckIcon />
+      ) : phase === 'error' ? (
+        <span className="text-sm font-bold leading-none" aria-hidden="true">✗</span>
+      ) : (
+        <ArchiveRestoreIcon />
+      )}
+    </button>
   );
 }
 
 function ArchiveRestoreIcon() {
   return (
     <svg
-      width="22"
-      height="22"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#fbbf24"
+      stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -115,11 +97,29 @@ function ArchiveRestoreIcon() {
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="4 12 10 18 20 6" />
+    </svg>
+  );
+}
+
 function Spinner() {
   return (
     <svg
-      width="12"
-      height="12"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

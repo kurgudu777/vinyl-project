@@ -203,10 +203,11 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-6">
-      <header className="mb-1.5 sm:mb-5">
+      <header className="mb-1.5 flex items-center justify-between gap-3 sm:mb-5">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
           Синхронизация
         </h1>
+        <AutoarchiveReturnButton />
       </header>
 
       <section className="grid gap-3 sm:gap-4 sm:grid-cols-3">
@@ -225,15 +226,6 @@ export default function HomePage() {
             onToggleExpanded={() => toggleExpanded(p.name)}
           />
         ))}
-      </section>
-
-      <section className="mt-3 border-t border-neutral-800/70 pt-3 sm:mt-6 sm:pt-6">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-          Разовые действия
-        </h2>
-        <div className="sm:max-w-sm">
-          <AutoarchiveReturnButton />
-        </div>
       </section>
 
       <section className="mt-3 sm:mt-6">
